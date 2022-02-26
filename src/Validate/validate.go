@@ -2,21 +2,33 @@ package Validate
 
 import (
 	"strconv"
+	"strings"
 )
 
-// Finnish social security code must follow certain legal conventions. Validate incoming string that the code is according to convention
-func ValidatesocialSecurityCode(socialSecurityCode string) bool {
-	socialSecurityCodeLength := len(socialSecurityCode)
-	if socialSecurityCodeLength != 11 {
+//Finnish social security code must follow certain legal conventions. Validate incoming string that the code is according to convention.
+func ValidateSocialSecurityCode(socialSecurityCode string) bool {
+	if !validateLength(string(socialSecurityCode)) {
 		return false
 	}
-	if !validateCenturyBorn(string(socialSecurityCode)) {
+	if !validateCenturyBorn(socialSecurityCode) {
 		return false
 	}
 	if !validateBirthDay(socialSecurityCode) {
 		return false
 	}
 	if !validateBirthMonth(socialSecurityCode) {
+		return false
+	}
+	if !validateEndDigits(socialSecurityCode) {
+		return false
+	}
+	return true
+}
+
+//Social security code cannot be longer or shoter than 11 digits.
+func validateLength(socialSecurityCode string) bool {
+	socialSecurityCodeLength := len(socialSecurityCode)
+	if socialSecurityCodeLength != 11 {
 		return false
 	}
 	return true
@@ -45,7 +57,7 @@ func validateBirthDay(socialSecurityCode string) bool {
 	}
 }
 
-//Validate that day born is at least less than 12 and more than 0
+//Validate that day born is at least less than 12 and more than 0.
 func validateBirthMonth(socialSecurityCode string) bool {
 	if monthBorn, err := strconv.Atoi(socialSecurityCode[2:3]); err == nil {
 		if monthBorn <= 12 && monthBorn > 0 {
@@ -58,13 +70,19 @@ func validateBirthMonth(socialSecurityCode string) bool {
 }
 
 //Finnish social security identity codes contain an end validation.
-func validateEndValidation(socialSecurityCode string) bool {
-	if monthBorn, err := strconv.Atoi(socialSecurityCode[6:10]); err == nil {
-		if monthBorn <= 12 && monthBorn > 0 {
-			return false
-		}
-		return true
-	} else {
+func validateEndDigits(socialSecurityCode string) bool {
+	// First 3 digits of the end part must be between 002-899
+	controlNumberDigits := socialSecurityCode[:10]
+	var replacer = strings.NewReplacer("-", "", "A", "", "+", "")
+	controlNumberDigits = replacer.Replace(controlNumberDigits)
+	controlNumber, err := strconv.Atoi(controlNumberDigits)
+	if err != nil {
 		panic(err)
 	}
+	controlNumberRemainder := controlNumber % 31
+	checkDigit := string(socialSecurityCode[10])
+	if checkDigit != strconv.Itoa(controlNumberRemainder) {
+		return false
+	}
+	return true
 }
